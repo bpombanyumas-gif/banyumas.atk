@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem ATK - Permintaan</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f0f4f8; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: white; padding: 20px 30px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header .subtitle { font-size: 14px; opacity: 0.8; }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .nav a { background: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; color: #2d3748; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s; }
+        .nav a.active { background: #2b6cb0; color: white; }
+        .nav a:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(43,108,176,0.3); }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .card h2 { margin-top: 0; color: #2d3748; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 600; color: #4a5568; margin-bottom: 5px; font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; transition: border 0.3s; }
+        .form-group input:focus, .form-group select:focus { border-color: #2b6cb0; outline: none; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { background: #2b6cb0; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: all 0.3s; }
+        .btn:hover { background: #1a365d; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(43,108,176,0.3); }
+        .btn-success { background: #48bb78; }
+        .btn-success:hover { background: #276749; }
+        .btn-danger { background: #fc8181; }
+        .btn-danger:hover { background: #c53030; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        table th { background: #edf2f7; padding: 12px; text-align: left; font-weight: 600; color: #2d3748; }
+        table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+        table tr:hover { background: #f7fafc; }
+        .badge { padding: 3px 12px; border-radius: 20px; font-size: 12px; }
+        .badge-success { background: #48bb78; color: white; }
+        .badge-warning { background: #ed8936; color: white; }
+        .badge-danger { background: #fc8181; color: white; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
+        .alert-success { background: #c6f6d5; color: #276749; border: 1px solid #9ae6b4; }
+        .alert-danger { background: #fed7d7; color: #9b2c2c; border: 1px solid #fc8181; }
+        .hidden { display: none; }
+        .loading { text-align: center; padding: 40px; color: #718096; }
+        .text-right { text-align: right; }
+        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } .header { flex-direction: column; text-align: center; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>📝 Permintaan ATK</h1>
+                <div class="subtitle">Formulir permintaan & riwayat realtime</div>
+            </div>
+            <div style="font-size:14px;">
+                <span id="lastUpdate">🔄 Memuat...</span>
+                <button class="refresh-btn" onclick="loadRiwayat()" style="margin-left:10px; background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer;">↻ Refresh</button>
+            </div>
+        </div>
+
+        <!-- Navigasi -->
+        <div class="nav">
+            <a href="index.html">📊 Dashboard</a>
+            <a href="permintaan.html" class="active">📝 Permintaan ATK</a>
+            <a href="pembelian.html">🛒 Pembelian</a>
+            <a href="kartu-stok.html">📋 Kartu Stok</a>
+        </div>
+
+        <!-- Form Permintaan -->
+        <div class="card">
+            <h2>📝 Form Permintaan ATK</h2>
+            <div id="alertContainer"></div>
+            <form id="permintaanForm" onsubmit="submitPermintaan(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Nama Peminta *</label>
+                        <input type="text" id="namaPeminta" placeholder="Masukkan nama lengkap" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Fungsi *</label>
+                        <select id="fungsi" required>
+                            <option value="">Pilih Fungsi</option>
+                            <option value="Tata Usaha">Tata Usaha</option>
+                            <option value="Pemeriksaan">Pemeriksaan</option>
+                            <option value="Sertifikasi">Sertifikasi</option>
+                            <option value="Infokom">Infokom</option>
+                            <option value="Penindakan">Penindakan</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Pilih Barang *</label>
+                        <select id="pilihBarang" required>
+                            <option value="">-- Pilih Barang --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Jumlah *</label>
+                        <input type="number" id="jumlah" placeholder="Jumlah permintaan" min="1" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-success">📤 Kirim Permintaan</button>
+            </form>
+        </div>
+
+        <!-- Riwayat Permintaan -->
+        <div class="card">
+            <h2>📋 Riwayat Permintaan (Realtime)</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>Nama</th>
+                            <th>Fungsi</th>
+                            <th>Barang</th>
+                            <th>Jumlah</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="riwayatBody">
+                        <tr><td colspan="6" class="loading">⏳ Memuat riwayat...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXX/exec'; // Ganti dengan URL Anda
+
+        // ============================================
+        // LOAD DAFTAR BARANG UNTUK DROPDOWN
+        // ============================================
+        async function loadBarangOptions() {
+            try {
+                const response = await fetch(`${API_URL}?action=getStok`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    const select = document.getElementById('pilihBarang');
+                    select.innerHTML = '<option value="">-- Pilih Barang --</option>';
+                    result.data.forEach(item => {
+                        const stok = parseInt(item['Stok Akhir']) || 0;
+                        select.innerHTML += `<option value="${item['ID']}" data-nama="${item['Nama Barang']}" data-stok="${stok}">${item['Nama Barang']} (Stok: ${stok})</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading barang:', error);
+            }
+        }
+
+        // ============================================
+        // LOAD RIWAYAT PERMINTAAN
+        // ============================================
+        async function loadRiwayat() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPermintaan`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    renderRiwayat(result.data);
+                    document.getElementById('lastUpdate').textContent = '🔄 Update: ' + new Date().toLocaleTimeString('id-ID');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('riwayatBody').innerHTML = '<tr><td colspan="6" style="color:red;">❌ Gagal memuat riwayat</td></tr>';
+            }
+        }
+
+        function renderRiwayat(data) {
+            const tbody = document.getElementById('riwayatBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">📭 Belum ada permintaan</td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.slice(0, 50).forEach(item => {
+                let badgeClass = 'badge-warning';
+                if (item['Status'] === 'Diproses') badgeClass = 'badge-warning';
+                else if (item['Status'] === 'Selesai') badgeClass = 'badge-success';
+                else if (item['Status'] === 'Ditolak') badgeClass = 'badge-danger';
+
+                html += `<tr>
+                    <td>${item['Tanggal'] ? item['Tanggal'].substring(0,16) : '-'}</td>
+                    <td><strong>${item['Nama Peminta'] || '-'}</strong></td>
+                    <td>${item['Fungsi'] || '-'}</td>
+                    <td>${item['Nama Barang'] || '-'}</td>
+                    <td>${item['Jumlah'] || 0}</td>
+                    <td><span class="badge ${badgeClass}">${item['Status'] || 'Diproses'}</span></td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // ============================================
+        // SUBMIT PERMINTAAN
+        // ============================================
+        async function submitPermintaan(e) {
+            e.preventDefault();
+            
+            const nama = document.getElementById('namaPeminta').value.trim();
+            const fungsi = document.getElementById('fungsi').value;
+            const selectBarang = document.getElementById('pilihBarang');
+            const idBarang = selectBarang.value;
+            const namaBarang = selectBarang.options[selectBarang.selectedIndex]?.getAttribute('data-nama') || '';
+            const jumlah = parseInt(document.getElementById('jumlah').value);
+            const alertContainer = document.getElementById('alertContainer');
+
+            if (!nama || !fungsi || !idBarang || !jumlah) {
+                showAlert('⚠️ Semua field harus diisi!', 'danger');
+                return;
+            }
+
+            // Cek stok
+            const stokTersedia = parseInt(selectBarang.options[selectBarang.selectedIndex]?.getAttribute('data-stok')) || 0;
+            if (jumlah > stokTersedia) {
+                showAlert(`⚠️ Stok tidak mencukupi! Tersisa: ${stokTersedia}`, 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'tambahPermintaan',
+                        namaPeminta: nama,
+                        fungsi: fungsi,
+                        idBarang: idBarang,
+                        namaBarang: namaBarang,
+                        jumlah: jumlah
+                    })
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAlert(`✅ Permintaan berhasil! Stok tersisa: ${result.stokBaru}`, 'success');
+                    document.getElementById('permintaanForm').reset();
+                    loadBarangOptions();
+                    loadRiwayat();
+                } else {
+                    showAlert(`❌ ${result.message || 'Gagal mengirim permintaan'}`, 'danger');
+                }
+            } catch (error) {
+                showAlert('❌ Error koneksi, coba lagi', 'danger');
+                console.error(error);
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const className = type === 'success' ? 'alert-success' : 'alert-danger';
+            container.innerHTML = `<div class="alert ${className}">${message}</div>`;
+            setTimeout(() => { container.innerHTML = ''; }, 5000);
+        }
+
+        // ============================================
+        // AUTO REFRESH RIWAYAT - SETIAP 15 DETIK
+        // ============================================
+        setInterval(loadRiwayat, 15000);
+
+        // ============================================
+        // INISIALISASI
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            loadBarangOptions();
+            loadRiwayat();
+        });
+    </script>
+</body>
+</html>
