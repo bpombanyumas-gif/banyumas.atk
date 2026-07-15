@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem ATK - Pembelian</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f0f4f8; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: white; padding: 20px 30px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .nav a { background: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; color: #2d3748; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s; }
+        .nav a.active { background: #2b6cb0; color: white; }
+        .nav a:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(43,108,176,0.3); }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .card h2 { margin-top: 0; color: #2d3748; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: 600; color: #4a5568; margin-bottom: 5px; font-size: 14px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px; }
+        .form-group input:focus, .form-group select:focus { border-color: #2b6cb0; outline: none; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .btn { background: #2b6cb0; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 16px; transition: all 0.3s; }
+        .btn:hover { background: #1a365d; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(43,108,176,0.3); }
+        .btn-success { background: #48bb78; }
+        .btn-success:hover { background: #276749; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        table th { background: #edf2f7; padding: 12px; text-align: left; font-weight: 600; color: #2d3748; }
+        table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+        table tr:hover { background: #f7fafc; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 15px; }
+        .alert-success { background: #c6f6d5; color: #276749; border: 1px solid #9ae6b4; }
+        .alert-danger { background: #fed7d7; color: #9b2c2c; border: 1px solid #fc8181; }
+        .loading { text-align: center; padding: 40px; color: #718096; }
+        .btn-print { background: #805ad5; }
+        .btn-print:hover { background: #6b46c1; }
+        .checkbox-group { display: flex; align-items: center; gap: 10px; margin-top: 5px; }
+        .checkbox-group input[type="checkbox"] { width: 18px; height: 18px; }
+        @media (max-width: 768px) { .form-row { grid-template-columns: 1fr; } .header { flex-direction: column; text-align: center; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🛒 Pembelian ATK</h1>
+                <div class="subtitle">Catat pembelian & update stok otomatis</div>
+            </div>
+            <div style="font-size:14px;">
+                <span id="lastUpdate">🔄 Memuat...</span>
+                <button class="refresh-btn" onclick="loadPembelian()" style="margin-left:10px; background: rgba(255,255,255,0.2); color: white; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer;">↻ Refresh</button>
+            </div>
+        </div>
+
+        <div class="nav">
+            <a href="index.html">📊 Dashboard</a>
+            <a href="permintaan.html">📝 Permintaan ATK</a>
+            <a href="pembelian.html" class="active">🛒 Pembelian</a>
+            <a href="kartu-stok.html">📋 Kartu Stok</a>
+        </div>
+
+        <!-- Form Pembelian -->
+        <div class="card">
+            <h2>📥 Catat Pembelian Barang</h2>
+            <div id="alertContainer"></div>
+            <form id="pembelianForm" onsubmit="submitPembelian(event)">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Tanggal Pembelian *</label>
+                        <input type="date" id="tanggalBeli" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Supplier</label>
+                        <input type="text" id="supplier" placeholder="Nama supplier">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Pilih Barang (atau barang baru)</label>
+                        <select id="pilihBarang" onchange="toggleBarangBaru()">
+                            <option value="">-- Pilih Barang Existing --</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>ID Barang *</label>
+                        <input type="text" id="idBarang" placeholder="OTOMATIS jika pilih barang" readonly>
+                    </div>
+                </div>
+                <div class="form-row" id="barangBaruRow">
+                    <div class="form-group">
+                        <label>Nama Barang Baru</label>
+                        <input type="text" id="namaBarangBaru" placeholder="Isi jika barang baru">
+                    </div>
+                    <div class="form-group">
+                        <label>Kategori</label>
+                        <select id="kategori">
+                            <option value="Alat Tulis">Alat Tulis</option>
+                            <option value="Kertas">Kertas</option>
+                            <option value="Peralatan Kantor">Peralatan Kantor</option>
+                            <option value="Lainnya">Lainnya</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Jumlah Beli *</label>
+                        <input type="number" id="jumlahBeli" placeholder="Jumlah" min="1" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Harga Satuan</label>
+                        <input type="number" id="hargaSatuan" placeholder="Harga per unit" min="0">
+                    </div>
+                </div>
+                <div class="checkbox-group">
+                    <input type="checkbox" id="barangBaruCheck" onchange="toggleBarangBaru()">
+                    <label for="barangBaruCheck">Ini adalah barang baru (tidak ada di daftar)</label>
+                </div>
+                <br>
+                <button type="submit" class="btn btn-success">💾 Simpan Pembelian</button>
+            </form>
+        </div>
+
+        <!-- Daftar Pembelian Terbaru -->
+        <div class="card">
+            <h2>📋 Data Pembelian Terbaru</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Tanggal</th>
+                            <th>ID Barang</th>
+                            <th>Nama Barang</th>
+                            <th>Jumlah</th>
+                            <th>Total</th>
+                            <th>Supplier</th>
+                        </tr>
+                    </thead>
+                    <tbody id="pembelianBody">
+                        <tr><td colspan="6" class="loading">⏳ Memuat data pembelian...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXX/exec'; // Ganti dengan URL Anda
+
+        // ============================================
+        // TOGGLE BARANG BARU
+        // ============================================
+        function toggleBarangBaru() {
+            const isNew = document.getElementById('barangBaruCheck').checked;
+            document.getElementById('barangBaruRow').style.display = isNew ? 'grid' : 'none';
+            document.getElementById('pilihBarang').disabled = isNew;
+            document.getElementById('namaBarangBaru').required = isNew;
+            
+            if (isNew) {
+                document.getElementById('idBarang').value = 'ATK-NEW-' + new Date().getTime();
+                document.getElementById('idBarang').readOnly = true;
+            } else {
+                document.getElementById('idBarang').readOnly = true;
+                const select = document.getElementById('pilihBarang');
+                if (select.value) {
+                    document.getElementById('idBarang').value = select.value;
+                }
+            }
+        }
+
+        // ============================================
+        // LOAD BARANG UNTUK DROPDOWN
+        // ============================================
+        async function loadBarangOptions() {
+            try {
+                const response = await fetch(`${API_URL}?action=getStok`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    const select = document.getElementById('pilihBarang');
+                    select.innerHTML = '<option value="">-- Pilih Barang --</option>';
+                    result.data.forEach(item => {
+                        select.innerHTML += `<option value="${item['ID']}">${item['Nama Barang']} (${item['ID']})</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // ============================================
+        // LOAD DATA PEMBELIAN
+        // ============================================
+        async function loadPembelian() {
+            try {
+                const response = await fetch(`${API_URL}?action=getPembelian`);
+                const result = await response.json();
+                if (result.status === 'success') {
+                    renderPembelian(result.data);
+                    document.getElementById('lastUpdate').textContent = '🔄 Update: ' + new Date().toLocaleTimeString('id-ID');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('pembelianBody').innerHTML = '<tr><td colspan="6" style="color:red;">❌ Gagal memuat data</td></tr>';
+            }
+        }
+
+        function renderPembelian(data) {
+            const tbody = document.getElementById('pembelianBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6">📭 Belum ada data pembelian</td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.slice(0, 30).forEach(item => {
+                html += `<tr>
+                    <td>${item['Tanggal Beli'] || '-'}</td>
+                    <td>${item['ID_Barang'] || '-'}</td>
+                    <td><strong>${item['Nama Barang'] || '-'}</strong></td>
+                    <td>${item['Jumlah Beli'] || 0}</td>
+                    <td>Rp ${(item['Harga Total'] || 0).toLocaleString('id-ID')}</td>
+                    <td>${item['Supplier'] || '-'}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // ============================================
+        // SUBMIT PEMBELIAN
+        // ============================================
+        async function submitPembelian(e) {
+            e.preventDefault();
+
+            const isNew = document.getElementById('barangBaruCheck').checked;
+            const idBarang = document.getElementById('idBarang').value;
+            const namaBarang = isNew ? document.getElementById('namaBarangBaru').value : 
+                document.getElementById('pilihBarang').options[document.getElementById('pilihBarang').selectedIndex]?.text || '';
+            const jumlahBeli = parseInt(document.getElementById('jumlahBeli').value);
+            const hargaSatuan = parseInt(document.getElementById('hargaSatuan').value) || 0;
+            const supplier = document.getElementById('supplier').value || '-';
+            const tanggalBeli = document.getElementById('tanggalBeli').value;
+            const kategori = document.getElementById('kategori').value;
+
+            const alertContainer = document.getElementById('alertContainer');
+
+            if (isNew && !document.getElementById('namaBarangBaru').value.trim()) {
+                showAlert('⚠️ Silakan isi nama barang baru!', 'danger');
+                return;
+            }
+
+            if (!idBarang || !namaBarang || !jumlahBeli || !tanggalBeli) {
+                showAlert('⚠️ Semua field wajib diisi!', 'danger');
+                return;
+            }
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'tambahPembelian',
+                        tanggalBeli: tanggalBeli,
+                        idBarang: idBarang,
+                        namaBarang: namaBarang,
+                        jumlahBeli: jumlahBeli,
+                        hargaTotal: jumlahBeli * hargaSatuan,
+                        hargaSatuan: hargaSatuan,
+                        supplier: supplier,
+                        kategori: kategori,
+                        satuan: 'Pcs'
+                    })
+                });
+
+                const result = await response.json();
+                if (result.status === 'success') {
+                    showAlert(`✅ Pembelian berhasil dicatat! ${result.message || ''}`, 'success');
+                    document.getElementById('pembelianForm').reset();
+                    document.getElementById('idBarang').value = 'ATK-NEW-' + new Date().getTime();
+                    document.getElementById('barangBaruRow').style.display = 'none';
+                    document.getElementById('barangBaruCheck').checked = false;
+                    document.getElementById('pilihBarang').disabled = false;
+                    loadBarangOptions();
+                    loadPembelian();
+                } else {
+                    showAlert(`❌ ${result.message || 'Gagal menyimpan pembelian'}`, 'danger');
+                }
+            } catch (error) {
+                showAlert('❌ Error koneksi, coba lagi', 'danger');
+                console.error(error);
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const className = type === 'success' ? 'alert-success' : 'alert-danger';
+            container.innerHTML = `<div class="alert ${className}">${message}</div>`;
+            setTimeout(() => { container.innerHTML = ''; }, 5000);
+        }
+
+        // ============================================
+        // INISIALISASI
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('tanggalBeli').value = new Date().toISOString().split('T')[0];
+            document.getElementById('idBarang').value = 'ATK-NEW-' + new Date().getTime();
+            loadBarangOptions();
+            loadPembelian();
+            document.getElementById('barangBaruRow').style.display = 'none';
+        });
+
+        // Auto refresh setiap 30 detik
+        setInterval(loadPembelian, 30000);
+    </script>
+</body>
+</html>
