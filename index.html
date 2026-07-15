@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem ATK - Dashboard</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #f0f4f8; margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { background: linear-gradient(135deg, #1a365d, #2b6cb0); color: white; padding: 20px 30px; border-radius: 12px; margin-bottom: 25px; display: flex; justify-content: space-between; align-items: center; }
+        .header h1 { margin: 0; font-size: 24px; }
+        .header .subtitle { font-size: 14px; opacity: 0.8; }
+        .nav { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+        .nav a { background: white; padding: 10px 20px; border-radius: 8px; text-decoration: none; color: #2d3748; font-weight: 600; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: all 0.3s; }
+        .nav a.active { background: #2b6cb0; color: white; }
+        .nav a:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(43,108,176,0.3); }
+        .card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 20px; }
+        .card h2 { margin-top: 0; color: #2d3748; font-size: 18px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-box { background: linear-gradient(135deg, #ebf4ff, #bee3f8); padding: 15px; border-radius: 10px; text-align: center; }
+        .stat-box .number { font-size: 28px; font-weight: 700; color: #2b6cb0; }
+        .stat-box .label { font-size: 14px; color: #4a5568; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        table th { background: #edf2f7; padding: 12px; text-align: left; font-weight: 600; color: #2d3748; }
+        table td { padding: 10px 12px; border-bottom: 1px solid #e2e8f0; }
+        table tr:hover { background: #f7fafc; }
+        .badge { background: #48bb78; color: white; padding: 3px 12px; border-radius: 20px; font-size: 12px; }
+        .badge.warning { background: #ed8936; }
+        .badge.danger { background: #fc8181; }
+        .btn { background: #2b6cb0; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn:hover { background: #1a365d; }
+        .btn-success { background: #48bb78; }
+        .btn-success:hover { background: #276749; }
+        .btn-danger { background: #fc8181; }
+        .btn-danger:hover { background: #c53030; }
+        .loading { text-align: center; padding: 40px; color: #718096; }
+        .refresh-btn { background: #edf2f7; border: none; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; }
+        .refresh-btn:hover { background: #e2e8f0; }
+        .text-right { text-align: right; }
+        @media (max-width: 768px) { .header { flex-direction: column; text-align: center; } .stats { grid-template-columns: 1fr 1fr; } table { font-size: 12px; } table th, table td { padding: 6px 8px; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>📊 Sistem ATK</h1>
+                <div class="subtitle">Pengelolaan Alat Tulis Kantor • Realtime</div>
+            </div>
+            <div style="font-size:14px;">
+                <span id="lastUpdate">🔄 Memuat...</span>
+                <button class="refresh-btn" onclick="loadData()" style="margin-left:10px;">↻ Refresh</button>
+            </div>
+        </div>
+
+        <!-- Navigasi -->
+        <div class="nav">
+            <a href="index.html" class="active">📊 Dashboard</a>
+            <a href="permintaan.html">📝 Permintaan ATK</a>
+            <a href="pembelian.html">🛒 Pembelian</a>
+            <a href="kartu-stok.html">📋 Kartu Stok</a>
+        </div>
+
+        <!-- Statistik -->
+        <div class="stats" id="statsContainer">
+            <div class="stat-box"><div class="number" id="totalBarang">0</div><div class="label">Total Barang</div></div>
+            <div class="stat-box"><div class="number" id="totalStok">0</div><div class="label">Total Stok</div></div>
+            <div class="stat-box"><div class="number" id="stokRendah">0</div><div class="label">Stok Menipis (&lt;10)</div></div>
+            <div class="stat-box"><div class="number" id="totalPermintaan">0</div><div class="label">Total Permintaan</div></div>
+        </div>
+
+        <!-- Tabel Stok -->
+        <div class="card">
+            <h2>📦 Stok Barang Real-time</h2>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nama Barang</th>
+                            <th>Stok Awal</th>
+                            <th>Masuk</th>
+                            <th>Keluar</th>
+                            <th>Stok Akhir</th>
+                            <th>Status</th>
+                            <th>Last Update</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stokTableBody">
+                        <tr><td colspan="8" class="loading">⏳ Memuat data stok...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // KONFIGURASI - GANTI DENGAN URL WEB APP ANDA
+        // ============================================
+        const API_URL = 'https://script.google.com/macros/s/XXXXXXXXXXXXXX/exec'; // Ganti dengan URL Anda
+
+        // ============================================
+        // FUNGSI LOAD DATA
+        // ============================================
+        async function loadData() {
+            try {
+                const response = await fetch(`${API_URL}?action=getStok`);
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    renderStokTable(result.data);
+                    updateStats(result.data);
+                    document.getElementById('lastUpdate').textContent = '🔄 Update: ' + new Date().toLocaleTimeString('id-ID');
+                } else {
+                    console.error('Error:', result.message);
+                    document.getElementById('stokTableBody').innerHTML = '<tr><td colspan="8" style="color:red;">❌ Gagal memuat data</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('stokTableBody').innerHTML = '<tr><td colspan="8" style="color:red;">❌ Error koneksi</td></tr>';
+            }
+        }
+
+        // ============================================
+        // RENDER TABEL STOK
+        // ============================================
+        function renderStokTable(data) {
+            const tbody = document.getElementById('stokTableBody');
+            if (!data || data.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8">📭 Belum ada data barang</td></tr>';
+                return;
+            }
+
+            let html = '';
+            data.forEach(item => {
+                const stokAkhir = parseInt(item['Stok Akhir']) || 0;
+                let status = '';
+                let badgeClass = 'badge';
+                if (stokAkhir <= 0) { status = 'Habis'; badgeClass += ' danger'; }
+                else if (stokAkhir < 10) { status = 'Menipis'; badgeClass += ' warning'; }
+                else { status = 'Tersedia'; badgeClass += ''; }
+
+                html += `<tr>
+                    <td><strong>${item['ID'] || '-'}</strong></td>
+                    <td>${item['Nama Barang'] || '-'}</td>
+                    <td>${item['Stok Awal'] || 0}</td>
+                    <td>${item['Barang Masuk'] || 0}</td>
+                    <td>${item['Barang Keluar'] || 0}</td>
+                    <td><strong>${stokAkhir}</strong></td>
+                    <td><span class="${badgeClass}">${status}</span></td>
+                    <td>${item['Last Update'] ? item['Last Update'].substring(0,16) : '-'}</td>
+                </tr>`;
+            });
+
+            tbody.innerHTML = html;
+        }
+
+        // ============================================
+        // UPDATE STATISTIK
+        // ============================================
+        function updateStats(data) {
+            document.getElementById('totalBarang').textContent = data.length;
+            
+            let totalStok = 0;
+            let stokRendah = 0;
+            data.forEach(item => {
+                const stok = parseInt(item['Stok Akhir']) || 0;
+                totalStok += stok;
+                if (stok < 10 && stok > 0) stokRendah++;
+            });
+            document.getElementById('totalStok').textContent = totalStok;
+            document.getElementById('stokRendah').textContent = stokRendah;
+            
+            // Ambil total permintaan
+            fetch(`${API_URL}?action=getPermintaan`)
+                .then(res => res.json())
+                .then(result => {
+                    if (result.status === 'success') {
+                        document.getElementById('totalPermintaan').textContent = result.data.length;
+                    }
+                })
+                .catch(() => {});
+        }
+
+        // ============================================
+        // AUTO REFRESH - SETIAP 30 DETIK
+        // ============================================
+        setInterval(loadData, 30000);
+
+        // Load awal
+        document.addEventListener('DOMContentLoaded', loadData);
+    </script>
+</body>
+</html>
